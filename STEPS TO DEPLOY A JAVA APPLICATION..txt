@@ -1,77 +1,119 @@
-Steps to deploy a java application.
+✅ HOW TO DEPLOY A JAVA SPRING BOOT APPLICATION (STEP-BY-STEP GUIDE)
 
+──────────────────────────────────────────────
+STEP 1: SET ENVIRONMENT VARIABLES
+──────────────────────────────────────────────
 
-1. set up the environment variable on the terminal before cleaning the package
-
-
-LINUX OR MACOS
-export SPRING_APPLICATION_NAME=
-export SPRING_DATASOURCE_URL=
-
-• /mvnw package
-
-WINDOWS [COMMAND PROMPT] 
-set SPRING_APPLICATION_NAME=
-set SPRING_DATASOURCE_URI=
-
-mvnw package
-
-WINDOWS [POWERSHELL]
-$env:SPRING_APPLICATION_NAME=""
-$env:SPRING_DATASOURCE_URL=""
-
+🟢 For Linux / macOS:
+export SPRING_APPLICATION_NAME=your-app-name
+export SPRING_DATASOURCE_URL=your-database-url
 ./mvnw package
 
+🟢 For Windows (Command Prompt):
+set SPRING_APPLICATION_NAME=your-app-name
+set SPRING_DATASOURCE_URL=your-database-url
+mvnw package
 
-make sure to set up the environment variable on the terminal if you have a .env file
-#for powershell
-$env:DATASOURCE_URL="jdbc:postgresql://localhost:5432/(database name)"
-$env:DATASOURCE_USER="username"
-$env:DATASOURCE_PASSWORD="password"
-$env:SERVER_PORT="8000"
-$env:TEST_DATASOURCE_URL="jdbc:postgresql://localhost:5432/(databasename)"
+🟢 For Windows (PowerShell):
+$env:SPRING_APPLICATION_NAME="your-app-name"
+$env:SPRING_DATASOURCE_URL="your-database-url"
+./mvnw package
 
+📝 Example for MongoDB (PowerShell):
+$env:MONGODB_URI="mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority"
+$env:DATABASE_NAME="contactdb"
 
+──────────────────────────────────────────────
+STEP 2: BUILD THE APPLICATION
+──────────────────────────────────────────────
 
-2. ./mvnw clean package: until you get a "BUILD SUCCESSFULL" don't progress to step 3
+./mvnw clean package
 
+⚠️ If Maven wrapper (mvnw) is not available:
+Install Apache Maven globally and run:
+mvn package
 
-3. Dockerize the application
+──────────────────────────────────────────────
+STEP 3: CREATE A DOCKERFILE
+──────────────────────────────────────────────
 
-########################################################
-create a docker file in your folder "Dockerfile"
-the folder that wraps the whole application 1.right click on it 2. new 3. file 4. filename: "Dockerfile" 
+➕ Create a file named "Dockerfile" in your project root:
 
-
-###########################################################################################
-
-#Use an official Maven image to build the spring boot app
+# Stage 1: Build
 FROM maven:3.8.4-openjdk-17 AS build
-
-#Set the working directory
 WORKDIR /app
-
-#Copy the pom.xml and install dependencies
 COPY pom.xml .
 RUN mvn dependency:go-offline
-
-#Copy the source code and build the application
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-#Use an official OpenJDK image to run the application
+# Stage 2: Run
 FROM openjdk:17-jdk-slim
-
-#Set the working directory
 WORKDIR /app
-
-#Copy the build JAR file from the build stage
-COPY --from=build /app/target/file-name.jar .
-
-#Expose port 8080
+COPY --from=build /app/target/contactManager-1.0-SNAPSHOT.jar .
 EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "/app/contactManager-1.0-SNAPSHOT.jar"]
 
-#Specify the command to run the application
-ENTRYPOINT ["java", "-jar", "/app/notes-0.0.1-SNAPSHOT.jar"]
+📌 Replace "contactManager-1.0-SNAPSHOT.jar" with your actual jar file (ignore the .original one in /target)
 
+──────────────────────────────────────────────
+STEP 4: BUILD THE DOCKER IMAGE
+──────────────────────────────────────────────
 
+docker build -t your-app-name .
+
+──────────────────────────────────────────────
+STEP 5: TAG THE DOCKER IMAGE
+──────────────────────────────────────────────
+
+docker tag your-app-name your-dockerhub-username/your-app-name:latest
+
+──────────────────────────────────────────────
+STEP 6: PUSH TO DOCKER HUB
+──────────────────────────────────────────────
+
+docker push your-dockerhub-username/your-app-name:latest
+
+❗ If you get:
+denied: requested access to the resource is denied
+→ Run:
+docker login
+
+──────────────────────────────────────────────
+STEP 7: VERIFY ON DOCKER DESKTOP
+──────────────────────────────────────────────
+
+Make sure your pushed image appears on your Docker Hub account.
+
+──────────────────────────────────────────────
+STEP 8: DEPLOY TO RENDER
+──────────────────────────────────────────────
+
+1. Visit https://render.com
+2. Create a new "Web Service"
+3. Choose: "Deploy an existing Docker image"
+4. Add your Docker credentials
+5. Use image reference:
+   docker.io/your-dockerhub-username/your-app-name:latest
+6. Add environment variables:
+   Use "Add from .env" or paste manually.
+
+──────────────────────────────────────────────
+STEP 9: CONFIGURE DATABASE (OPTIONAL)
+──────────────────────────────────────────────
+
+🎯 PostgreSQL Example (Neon.tech):
+
+JDBC URL Format:
+jdbc:postgresql://ep-example.us-east-2.aws.neon.tech/db-name
+
+ENV Variables:
+DATASOURCE_URL=jdbc:postgresql://ep-example.us-east-2.aws.neon.tech/your-db
+DATASOURCE_USER=your-db-username
+DATASOURCE_PASSWORD=your-db-password
+
+🔗 https://neon.tech — Free PostgreSQL hosting
+
+──────────────────────────────────────────────
+
+✅ DONE! YOUR SPRING BOOT APP IS NOW DEPLOYED WITH DOCKER + RENDER 🚀
